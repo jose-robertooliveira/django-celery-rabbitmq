@@ -1,0 +1,52 @@
+version: '3.9'
+
+services:
+  djsource:
+    container_name: djsource
+    build:
+      context: .
+    ports:
+      - 8000:8000
+    volumes:
+      - ./djsource:/djsource
+    env_file:
+      - ./dotenv_files/.env
+    depends_on:
+      - pgdb
+  pgdb:
+    container_name: pgdb
+    image: postgres:13-alpine
+    volumes:
+      - ./data/postgres/data:/var/lib/postgresql/data/
+    env_file:
+      - ./dotenv_files/.env
+
+  rabbit:
+      image: rabbitmq:3-management
+      container_name: rabbit
+      hostname: rabbit
+      env_file:
+      - ./dotenv_files/.env
+      environment:
+        - RABBITMQ_DEFAULT_USER=guest
+        - RABBITMQ_DEFAULT_PASS=guest
+        - RABBITMQ_DEFAULT_VHOST=/
+      ports:
+        - "5672:5672"
+        - "15672:15672"
+
+  celery:
+    restart: always
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - .:/app
+    depends_on:
+      - rabbit
+      - pgdb
+    # environment:
+    # - RABBITMQ_DEFAULT_USER=guest
+    # - RABBITMQ_DEFAULT_PASS=guest
+    # - CELERY_BROKER=amqp://admin:admin@rabbitmq:5672//
+
